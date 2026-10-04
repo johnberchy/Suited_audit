@@ -114,13 +114,15 @@ function claimExit() external nonReentrant {
 
 ``claimExit``checks only the caller's balance, the time, and the signature, here are his four checks:
 
-p.exitAt == 0  //is there a pending exit at all
+```solidity
+p.exitAt == 0   //is there a pending exit at all
 
-block.timestamp < p.exitAt  //has the delay elapsed
+block.timestamp < p.exitAt   //has the delay elapsed
 
-amount == 0  //non-zero after clamping
+amount == 0   //non-zero after clamping
 
 the clamp itself, p.exitAmount > p.balance ? p.balance : p.exitAmount  //caps against whatever p.balance currently is on-chain
+```
 
 Here are three sequence a malicious actor can play;
 
