@@ -32,10 +32,14 @@ if (token.balanceOf(address(this)) < liabilities + rakeCollected) revert VaultUn
 
 Pause only stops later checkpoints. It doesn't stop when a malicious actor's foothold wallet with the compromised server hotkeys who disguises as a player calls ``deposit(minDeposit)`` so ``everDeposited = true``
 
-`` Player storage p = players[players_[i]];
-if (!p.everDeposited) revert NotAPlayer();``
+```solidity
+Player storage p = players[players_[i]];
+if (!p.everDeposited) revert NotAPlayer();
+```
 
-The malicious actor(W) calls ``checkpoint``(seq+1, [V1…V23, W], [−bal(V1)…−bal(V23), +Σ], 0)(using 23 victims/players as a scenario) Every guard passes: caller is the settler, seq is correct, the deltas sum to 0, there are no duplicates, all wallets have deposited, and each debit is ≤ that victim's balance. Per-player deltas have no cap, and ``maxRakePerCheckpoint`` only bounds rake.
+The malicious actor(W) calls ``checkpoint``(seq+1, [V1…V23, W], [−bal(V1)…−bal(V23), +Σ], 0)(using 23 victims/players as a scenario)
+
+Every guard passes: caller is the settler, seq is correct, the deltas sum to 0, there are no duplicates, all wallets have deposited, and each debit is ≤ that victim's balance. Per-player deltas have no cap, and ``maxRakePerCheckpoint`` only bounds rake.
 
 ```solidity
 function checkpoint(uint256 seq, address[] calldata players_, int256[] calldata deltas, uint256 rake)
@@ -77,11 +81,11 @@ The malicious actor reads each victim's actual on-chain balance via the public p
 A victim who already called ``requestExit`` has ``exitAmount clamped down by the same checkpoint ``(if (p.exitAmount > p.balance)``. The exit hatch protects against a settler that refuses to sign, not one that is malicious.
 
 
-# IMPACT
+# Impact:
 
 Total, instantaneous loss of every player's on-chain balance,
 
-# ISSUE M:2 —  exits and pre-signed auths are claims on the same balance that off-chain hands stake
+# ISSUE MEDIUM-2: EXITS AND PRE-SIGNED AUTHS ARE CLAIMS ON THE SAME BALANCE THAT OFFCHAIN HANDS STAKE
 
 # Summary:
 the owner calls ``setPaused(true)`` mid-incident, checkpoint is blocked (can't reconcile any hand), but ``requestExit``, ``claimExit``, and ``withdraw`` all keep working exactly as before — which is precisely what lets a pending exit clock, started before the pause, finish and pay out during the pause window, against a hand that will now never be checkpointed at all.
@@ -118,13 +122,22 @@ Here are three sequence a malicious actor;
 
 1st sequence 
 
-< Actor deposits 200 and calls requestExit(200).
+< Malicious Actor(A) deposits 1000 and calls requestExit(1000).
 
-< If the gateway still seats them, he loses 200 to B off-chain just before exitAt.
+< If the gateway still seats them, A loses 200 to B who is the oppenent off-chain just before exitAt.
 
-< he calls claimExit() and is paid 200.
+< he calls claimExit() and is paid 1000.
 
-< The gateway's checkpoint [A:-200, B: +200] reverts with InsufficientBalance
+< The gateway's checkpoint [A:-1000, B: +1000] reverts with InsufficientBalance
+
+Why it reverts: by the time this checkpoint is submitted, A's on-chain balance has already been reduced to 0 by ``claimExit()``. So when checkpoint tries to apply -1000 to A:
+
+```
+uint256 debit = uint256(-delta);
+if (p.balance < debit) revert InsufficientBalance();
+```
+
+``p.balance (0)`` is less than ``debit (1000)``, so it reverts — and because the whole checkpoint call is one transaction, B's +1000 credit never lands either, even though B was the rightful winner.
 
 ```solidity
 function requestExit(uint256 amount) external {
