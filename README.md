@@ -34,7 +34,7 @@ if (!p.everDeposited) revert NotAPlayer();``
 
 The malicious actor calls checkpoint(seq+1, [V1…V23, W], [−bal(V1)…−bal(V23), +Σ], 0)(using 24 victims/players as a scenario) Every guard passes: caller is the settler, seq is correct, the deltas sum to 0, there are no duplicates, all wallets have deposited, and each debit is ≤ that victim's balance. Per-player deltas have no cap, and maxRakePerCheckpoint only bounds rake.
 
-```
+```solidity
 function checkpoint(uint256 seq, address[] calldata players_, int256[] calldata deltas, uint256 rake)
     external
     onlySettler       
