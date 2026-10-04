@@ -92,7 +92,7 @@ Total, instantaneous loss of every player's on-chain balance,
 Code Snippet - src/contract/Suited.sol
 
 # Summary:
-the owner calls ``setPaused(true)`` mid-incident, checkpoint is blocked (can't reconcile any hand), but ``requestExit``, ``claimExit``, and ``withdraw`` all keep working exactly as before — which is precisely what lets a pending exit clock, started before the pause, finish and pay out during the pause window, against a hand that will now never be checkpointed at all.
+The owner calls ``setPaused(true)`` mid-incident, checkpoint is blocked (can't reconcile any hand), but ``requestExit``, ``claimExit``, and ``withdraw`` all keep working exactly as before — which is precisely what lets a pending exit clock, started before the pause, finish and pay out during the pause window, against a hand that will now never be checkpointed at all.
 
 # Vulnerability Details:
 
@@ -112,7 +112,7 @@ function claimExit() external nonReentrant {
 }
 ```
 
-claimExit ... check[s] only the caller's balance, the time, and the signature, here are his four checks:
+``claimExit``checks only the caller's balance, the time, and the signature, here are his four checks:
 
 p.exitAt == 0  //is there a pending exit at all
 
@@ -122,7 +122,7 @@ amount == 0  //non-zero after clamping
 
 the clamp itself, p.exitAmount > p.balance ? p.balance : p.exitAmount  //caps against whatever p.balance currently is on-chain
 
-Here are three sequence a malicious actor;
+Here are three sequence a malicious actor can play;
 
 1st sequence 
 
