@@ -16,7 +16,9 @@ remediation.
 
 # Issues Found: Three findings in suited.sol vault contract
 
-# ISSUE MEDIUM:1 (TRUST MODEL): HOTKEY WHEN COMPROMISED CAN MOVE EVERY PLAYERS BALANCE, AND THE EXIT HATCH DOESN'T STOP IT
+# ISSUE MEDIUM:1 (TRUST MODEL): HOTKEY WHEN COMPROMISED CAN MOVE EVERY PLAYERS BALANCE, AND THE EXIT HATCH DOESN'T STOP IT #L321
+
+Code snippet - src/contract/Suited.sol
 
 # Summary
 
@@ -85,7 +87,9 @@ A victim who already called ``requestExit`` has ``exitAmount clamped down by the
 
 Total, instantaneous loss of every player's on-chain balance,
 
-# ISSUE MEDIUM-2: EXITS AND PRE-SIGNED AUTHS ARE CLAIMS ON THE SAME BALANCE THAT OFFCHAIN HANDS STAKE
+# ISSUE MEDIUM-2: EXITS AND PRE-SIGNED AUTHS ARE CLAIMS ON THE SAME BALANCE THAT OFFCHAIN HANDS STAKE #L447,L349,L428,L481,
+
+Code Snippet - src/contract/Suited.sol
 
 # Summary:
 the owner calls ``setPaused(true)`` mid-incident, checkpoint is blocked (can't reconcile any hand), but ``requestExit``, ``claimExit``, and ``withdraw`` all keep working exactly as before — which is precisely what lets a pending exit clock, started before the pause, finish and pay out during the pause window, against a hand that will now never be checkpointed at all.
@@ -206,7 +210,9 @@ The whole 24-entry batch reverts. Because ``checkpointSeq`` is global, one wedge
 
 
 
-# ISSUE LOW:3 RESCUE TOKEN CHECKS ADDRESS IDENTITY, NOT ASSET IDENTITY
+# ISSUE LOW:3 RESCUE TOKEN CHECKS ADDRESS IDENTITY, NOT ASSET IDENTITY #L271
+
+Code Snippet - src/contract/Suited.sol
 
 # Summary
 
