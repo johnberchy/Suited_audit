@@ -6,6 +6,36 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Suited} from "../src/Suited.sol";
 
+///                      48
+///                      48
+///                      48
+///                     4488
+///                    444888
+///                 44444 88888
+///                444444 888888
+///              44444444 88888888
+///             444444444 888888888
+///           44444444444 88888888888
+///         4444444444444 8888888888888
+///       444444444444444 888888888888888
+///     44444444444444444 88888888888888888
+///  44444444444444444444 8888888888888888888
+/// 4444444444444444444444 88888888888888888888
+///  44444444444444444444 8888888888888888888
+///     44444444444444444 88888888888888888
+///       444444444444444 888888888888888
+///         4444444444444 8888888888888
+///           44444444444 88888888888
+///             444444444 888888888
+///              44444444 88888888
+///                444444 888888
+///                 44444 88888
+///                    444888
+///                     4488
+///                      48
+///                      48
+////                     48
+
 contract MockUSDG is ERC20 {
     constructor() ERC20("Mock USDG", "USDG") {}
 
@@ -22,8 +52,7 @@ contract MockUSDG is ERC20 {
 ///
 /// Every test asserts the CURRENT (vulnerable) behaviour, so they all PASS
 /// today. After you ship a fix, the relevant test should start failing --
-/// that failure is your regression signal. Update or invert it then.
-///
+/// that failure is your regression signal. 
 /// Test contract == deployer == owner of Suited (Ownable(msg.sender)).
 contract SuitedPoC is Test {
     uint256 internal constant SETTLER_PK = 0xA11CE;
