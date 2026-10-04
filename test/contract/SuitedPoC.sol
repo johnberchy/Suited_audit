@@ -49,10 +49,7 @@ contract MockUSDG is ERC20 {
 }
 
 /// PoCs for review findings M1 and M2.
-///
 /// Every test asserts the CURRENT (vulnerable) behaviour, so they all PASS
-/// today. After you ship a fix, the relevant test should start failing --
-/// that failure is your regression signal. 
 /// Test contract == deployer == owner of Suited (Ownable(msg.sender)).
 contract SuitedPoC is Test {
     uint256 internal constant SETTLER_PK = 0xA11CE;
