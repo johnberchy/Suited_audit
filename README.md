@@ -15,7 +15,7 @@ remediation.
 
 # Issues Found: 4 findings in suited.sol vault contract
 
-# ISSUE M:1 (trust model): HOTKEY WHEN COMPROMISED CAN MOVE EVERY PLAYERS BALANCE, AND THE EXIT HATCH DOESN'T STOP IT
+# ISSUE MEDIUM:1 (trust model): HOTKEY WHEN COMPROMISED CAN MOVE EVERY PLAYERS BALANCE, AND THE EXIT HATCH DOESN'T STOP IT
 
 # Summary
 
@@ -105,17 +105,24 @@ function claimExit() external nonReentrant {
 
 claimExit ... check[s] only the caller's balance, the time, and the signature, here are his four checks:
 
-p.exitAt == 0 //is there a pending exit at all
+p.exitAt == 0  //is there a pending exit at all
+
 block.timestamp < p.exitAt  //has the delay elapsed
+
 amount == 0  //non-zero after clamping
+
 the clamp itself, p.exitAmount > p.balance ? p.balance : p.exitAmount  //caps against whatever p.balance currently is on-chain
 
-here are three sequence a malicious actor;
+Here are three sequence a malicious actor;
+
 1st sequence 
 
 < Actor deposits 200 and calls requestExit(200).
+
 < If the gateway still seats them, he loses 200 to B off-chain just before exitAt.
+
 < he calls claimExit() and is paid 200.
+
 < The gateway's checkpoint [A:-200, B: +200] reverts with InsufficientBalance
 
 ```solidity
@@ -131,8 +138,11 @@ function requestExit(uint256 amount) external {
 2nd sequence
 
 < The gateway issues a withdraw auth for the full bankroll with a deadline minutes away.
+
 < The actor holds the signature, sits down with full chips, and loses.
+
 < They submit withdraw before the deadline and are paid.
+
 < The checkpoint reverts the same way.
 
 ```solidity
@@ -158,26 +168,31 @@ modifier whenNotPaused() {
 ```
 
  < the owner pauses during an incident.
- < Checkpoints stop but exit clocks keep running, 
+ 
+ < Checkpoints stop but exit clocks keep running,
+ 
  < pending exits become claimable against hands that were never settled.
 
-claimExit and _consumeAuth check only the caller's balance, the time, and the signature. Nothing on-chain knows chips are in play. The exit clamp runs only inside checkpoint, which is too late.
+``claimExit`` and ``_consumeAuth`` check only the caller's balance, the time, and the signature. Nothing on-chain knows chips are in play. The exit clamp runs only inside checkpoint, which is too late.
 
 # Impact:
 
 The vault stays solvent. The loss falls on counterparties or the house through off-chain obligations that can't be collected.
 The whole 24-entry batch reverts. Because ``checkpointSeq`` is global, one wedged batch stalls every table until the gateway rebuilds it.
 
-Fixes:
+# Recommendation
 
-Gateway: treat ExitRequested as hard seat removal and require exitDelay ≥ worst-case hand + checkpoint latency + retries.
+Gateway: treat ``ExitRequested`` as hard seat removal and require exitDelay ≥ worst-case hand + checkpoint latency + retries.
+
 Gateway: treat an issued auth as locked funds until it is consumed (usedAuths) or expired.
+
 Contract: cap auth TTL (e.g. deadline <= block.timestamp + 10 minutes).
+
 Contract: add an owner setter for exitDelay within MAX_EXIT_DELAY. Right now it is fixed at construction, though the comment calls it configurable.
 
 
 
-# ISSUE L:3 RESCUE TOKEN CHECKS ADDRESS IDENTITY, NOT ASSET IDENTITY
+# ISSUE LOW:3 RESCUE TOKEN CHECKS ADDRESS IDENTITY, NOT ASSET IDENTITY
 
 # Summary
 
