@@ -2,6 +2,7 @@
 
 # Findings
 Each issue has an assigned severity:
+
 • High issues are directly exploitable security vulnerabilities that need to be fixed.
 
 • Medium issues are security vulnerabilities that may not be directly exploitable or
@@ -13,9 +14,9 @@ security risk or impact the system’s integrity. These issues are typically cos
 related to compliance requirements, and are not considered a priority for
 remediation.
 
-# Issues Found: 4 findings in suited.sol vault contract
+# Issues Found: Three findings in suited.sol vault contract
 
-# ISSUE MEDIUM:1 (trust model): HOTKEY WHEN COMPROMISED CAN MOVE EVERY PLAYERS BALANCE, AND THE EXIT HATCH DOESN'T STOP IT
+# ISSUE MEDIUM:1 (TRUST MODEL): HOTKEY WHEN COMPROMISED CAN MOVE EVERY PLAYERS BALANCE, AND THE EXIT HATCH DOESN'T STOP IT
 
 # Summary
 
@@ -29,12 +30,12 @@ The solvency assert is global and transfers between players leave it unchanged.
 if (token.balanceOf(address(this)) < liabilities + rakeCollected) revert VaultUndercollateralised();
 ```
 
-Pause only stops later checkpoints. It doesn't stop when an attacker's foothold wallet with the compromised server hotkeys who disguises as a player calls deposit(minDeposit) so everDeposited = true
+Pause only stops later checkpoints. It doesn't stop when a malicious actor's foothold wallet with the compromised server hotkeys who disguises as a player calls ``deposit(minDeposit)`` so ``everDeposited = true``
 
 `` Player storage p = players[players_[i]];
 if (!p.everDeposited) revert NotAPlayer();``
 
-The malicious actor calls checkpoint(seq+1, [V1…V23, W], [−bal(V1)…−bal(V23), +Σ], 0)(using 24 victims/players as a scenario) Every guard passes: caller is the settler, seq is correct, the deltas sum to 0, there are no duplicates, all wallets have deposited, and each debit is ≤ that victim's balance. Per-player deltas have no cap, and maxRakePerCheckpoint only bounds rake.
+The malicious actor(W) calls ``checkpoint``(seq+1, [V1…V23, W], [−bal(V1)…−bal(V23), +Σ], 0)(using 23 victims/players as a scenario) Every guard passes: caller is the settler, seq is correct, the deltas sum to 0, there are no duplicates, all wallets have deposited, and each debit is ≤ that victim's balance. Per-player deltas have no cap, and ``maxRakePerCheckpoint`` only bounds rake.
 
 ```solidity
 function checkpoint(uint256 seq, address[] calldata players_, int256[] calldata deltas, uint256 rake)
@@ -73,12 +74,12 @@ function checkpoint(uint256 seq, address[] calldata players_, int256[] calldata 
 
 The malicious actor reads each victim's actual on-chain balance via the public players mapping before building the batch, and debits exactly that amount, never more.
 
-A victim who already called requestExit has exitAmount clamped down by the same checkpoint ``(if (p.exitAmount > p.balance)``. The exit hatch protects against a settler that refuses to sign, not one that is malicious.
+A victim who already called ``requestExit`` has ``exitAmount clamped down by the same checkpoint ``(if (p.exitAmount > p.balance)``. The exit hatch protects against a settler that refuses to sign, not one that is malicious.
 
 
 # IMPACT
 
-
+Total, instantaneous loss of every player's on-chain balance,
 
 # ISSUE M:2 —  exits and pre-signed auths are claims on the same balance that off-chain hands stake
 
@@ -158,7 +159,7 @@ function _consumeAuth(bytes32 typehash, uint256 amount, bytes32 authId, uint256 
 }
 ```
 
- 3rd Sequence (pause): the pause asymmetry that lets this all happen mid-incident
+ 3rd Sequence (pause): The pause asymmetry that lets this all happen mid-incident
  
  ```solidity
 modifier whenNotPaused() {
@@ -167,11 +168,11 @@ modifier whenNotPaused() {
 }
 ```
 
- < the owner pauses during an incident.
+ < Owner pauses during an incident.
  
  < Checkpoints stop but exit clocks keep running,
  
- < pending exits become claimable against hands that were never settled.
+ < Pending exits become claimable against hands that were never settled.
 
 ``claimExit`` and ``_consumeAuth`` check only the caller's balance, the time, and the signature. Nothing on-chain knows chips are in play. The exit clamp runs only inside checkpoint, which is too late.
 
@@ -182,13 +183,13 @@ The whole 24-entry batch reverts. Because ``checkpointSeq`` is global, one wedge
 
 # Recommendation
 
-Gateway: treat ``ExitRequested`` as hard seat removal and require exitDelay ≥ worst-case hand + checkpoint latency + retries.
+< Gateway: treat ``ExitRequested`` as hard seat removal and require ``exitDelay`` ≥ worst-case hand + checkpoint latency + retries.
 
-Gateway: treat an issued auth as locked funds until it is consumed (usedAuths) or expired.
+< Gateway: treat an issued auth as locked funds until it is consumed (usedAuths) or expired.
 
-Contract: cap auth TTL (e.g. deadline <= block.timestamp + 10 minutes).
+< Contract: cap auth TTL (e.g. deadline <= block.timestamp + 10 minutes).
 
-Contract: add an owner setter for exitDelay within MAX_EXIT_DELAY. Right now it is fixed at construction, though the comment calls it configurable.
+< Contract: add an owner setter for exitDelay within MAX_EXIT_DELAY. Right now it is fixed at construction, though the comment calls it configurable.
 
 
 
@@ -199,5 +200,28 @@ Contract: add an owner setter for exitDelay within MAX_EXIT_DELAY. Right now it 
 If the money token ever has an alias entry point (dual-address or proxy-facade tokens), the owner can call setRakeDestination(self) and then rescueToken(alias, amount), bypassing the stray == token check and draining player funds. It is unlikely for USDG, but the fix is cheap: after the transfer, assert token.balanceOf(this) >= liabilities + rakeCollected. Also:
 
 rakeDestination can be set to address(this), which makes withdrawRake a self-transfer that permanently strands collateral.
-The "owner chooses when, never where" comment overclaims, since setRakeDestination is instant.
+The "owner chooses when, never where" comment overclaims, since ``setRakeDestination`` is instant.
+
+# Vulnerability Details
+
+```
+function rescueToken(IERC20 stray, uint256 amount) external onlyOwner {
+    if (address(stray) == address(token)) revert InvalidDestination();
+    stray.safeTransfer(rakeDestination, amount);
+}
+```
+
+The function's only safety check is address equality: ``stray != token``. That's checking which address is pass in, not what asset that address actually represents. These are the same thing only under an assumption the contract never verifies: that every ERC-20-shaped contract has exactly one canonical address.
+
+```
+setRakeDestination(ownerControlledAddress);   // onlyOwner, takes effect immediately
+rescueToken(aliasAddressForUSDG, amount);     // passes the stray != token check
+```
+
+This can occur when the owner ``rescueToken`` happily calls ``stray.safeTransfer(rakeDestination, amount)``, and because stray is an alias for the real money token, this moves actual player-backing collateral out of the vault — collateral the header comment explicitly calls "deliberately unsweepable."
+
+# Impact:
+
+Direct loss: Real USDG backing player balances leaves the vault, through a function whose entire design promise is that it can't do that. This requires the owner key and the condition that USDG (or a facade pointing at it) has more than one valid address — it isn't exploitable by an outside malicious actor with no privileged access, and it isn't exploitable at all if USDG only ever has one canonical address.
+
 
