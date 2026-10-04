@@ -96,7 +96,7 @@ A victim who already called requestExit has exitAmount clamped down by the same 
     emit Withdrawn(msg.sender, amount, p.balance, true);
 }```
 
-"claimExit ... check[s] only the caller's balance, the time, and the signature." here are his four checks:
+claimExit ... check[s] only the caller's balance, the time, and the signature, here are his four checks:
 
 p.exitAt == 0 //is there a pending exit at all
 block.timestamp < p.exitAt  //has the delay elapsed
