@@ -25,9 +25,9 @@ The header/Ccomment says the settler "can move only in zero-sum steps." That hol
 
 The solvency assert is global and transfers between players leave it unchanged.
 
-``solidity
+```solidity
 if (token.balanceOf(address(this)) < liabilities + rakeCollected) revert VaultUndercollateralised();
-``
+```
 
 Pause only stops later checkpoints. It doesn't stop when an attacker's foothold wallet with the compromised server hotkeys who disguises as a player calls deposit(minDeposit) so everDeposited = true
 
