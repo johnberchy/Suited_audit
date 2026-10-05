@@ -225,7 +225,7 @@ The "owner chooses when, never where" comment overclaims, since ``setRakeDestina
 
 # Vulnerability Details
 
-```
+```solidity
 function rescueToken(IERC20 stray, uint256 amount) external onlyOwner {
     if (address(stray) == address(token)) revert InvalidDestination();
     stray.safeTransfer(rakeDestination, amount);
@@ -234,7 +234,7 @@ function rescueToken(IERC20 stray, uint256 amount) external onlyOwner {
 
 The function's only safety check is address equality: ``stray != token``. That's checking which address is pass in, not what asset that address actually represents. These are the same thing only under an assumption the contract never verifies: that every ERC-20-shaped contract has exactly one canonical address.
 
-```
+```solidity
 setRakeDestination(ownerControlledAddress);   // onlyOwner, takes effect immediately
 rescueToken(aliasAddressForUSDG, amount);     // passes the stray != token check
 ```
