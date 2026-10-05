@@ -92,7 +92,7 @@ Total, instantaneous loss of every player's on-chain balance,
 Code Snippet - src/contract/Suited.sol
 
 # Summary:
-The owner calls ``setPaused(true)`` mid-incident, checkpoint is blocked (can't reconcile any hand), but ``requestExit``, ``claimExit``, and ``withdraw`` all keep working exactly as before — which is precisely what lets a pending exit clock, started before the pause, finish and pay out during the pause window, against a hand that will now never be checkpointed at all.
+The owner calls ``setPaused(true)`` mid-incident, checkpoint is blocked (can't reconcile any hand), but ``requestExit``, ``claimExit``, and ``withdraw`` all keep working exactly as before — which is precisely what lets a pending exit clock, started before the pause, finish and pay out during the pause window, against a hand that will now never be checkpointed at all. These does not require any setSettler or the hotkeys been compromized,any player can run this
 
 # Vulnerability Details:
 
